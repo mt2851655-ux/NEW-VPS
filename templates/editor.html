@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style>*,:before,:after{animation:none!important;transition:none!important;scroll-behavior:auto!important;}</style>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ªGE تيم | File Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/display/fullscreen.min.css">
+    <style>
+        body { background: radial-gradient(circle at top, rgba(34,197,94,0.12), transparent 28%), linear-gradient(180deg, #05060a 0%, #0b0f14 55%, #05060a 100%); color: #e5fbea; font-family: 'Segoe UI', sans-serif; }
+        .panel { background: rgba(8, 12, 17, 0.84); border: 1px solid rgba(34,197,94,0.18); box-shadow: 0 20px 50px rgba(0,0,0,.35); }
+        .CodeMirror { height: calc(100vh - 290px); min-height: 380px; background: #05070b; color: #e5fbea; border-radius: 0 0 0.75rem 0.75rem; font-family: 'Courier New', monospace; font-size: 13px; }
+        .CodeMirror-gutters { background: #040509; border-right: 1px solid #1f2937; }
+        .CodeMirror-linenumber { color: #64748b; }
+        .code-toolbar { background: #0b1117; border: 1px solid #1f2937; border-bottom: none; border-radius: 0.75rem 0.75rem 0 0; }
+        .pill { border: 1px solid rgba(34,197,94,0.22); background: rgba(34,197,94,0.08); }
+        .input, .select { background:#05070b; border:1px solid #263142; color:#e5fbea; }
+        .input:focus, .select:focus { outline:none; border-color:#22c55e; box-shadow:0 0 0 3px rgba(34,197,94,0.12); }
+        .btn { transition: all .15s ease; }
+        .btn:active { transform: scale(.98); }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="max-w-7xl mx-auto p-4 md:p-6">
+        <div class="panel rounded-2xl p-4 md:p-5 mb-4">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                    <div class="text-xs text-emerald-400 uppercase tracking-[0.3em]">ªGE تيم • File Editor</div>
+                    <h1 class="text-2xl md:text-3xl font-black mt-2">{{ filename or 'Create new file' }}</h1>
+                    <p class="text-gray-400 text-sm mt-1 break-all">{{ panel_url }}</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <a href="{{ panel_url }}" class="btn px-4 py-2 rounded-xl bg-[#111827] border border-gray-700 text-sm hover:border-emerald-500"><i class="fas fa-arrow-left mr-1"></i> Dashboard</a>
+                    <button id="saveBtn" class="btn px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm hover:bg-emerald-500"><i class="fas fa-save mr-1"></i> Save</button>
+                    <button id="downloadBtn" class="btn px-4 py-2 rounded-xl bg-cyan-600 text-white text-sm hover:bg-cyan-500"><i class="fas fa-download mr-1"></i> Download</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid lg:grid-cols-3 gap-4 mb-4">
+            <div class="panel rounded-2xl p-4 space-y-4">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-2">File name</label>
+                    <input id="fileName" class="input w-full rounded-xl px-4 py-3 text-sm" value="{{ filename }}" placeholder="app.py">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-2">Folder (optional)</label>
+                    <input id="folderPath" class="input w-full rounded-xl px-4 py-3 text-sm" value="{{ folder }}" placeholder="src/">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-2">Language</label>
+                    <select id="languageMode" class="select w-full rounded-xl px-4 py-3 text-sm">
+                        <option value="python">Python</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="htmlmixed">HTML</option>
+                        <option value="css">CSS</option>
+                        <option value="php">PHP</option>
+                        <option value="javascript">JSON</option>
+                        <option value="yaml">YAML</option>
+                        <option value="xml">XML</option>
+                        <option value="sql">SQL</option>
+                        <option value="markdown">Markdown</option>
+                        <option value="text/plain">Text</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <button id="wrapBtn" class="btn pill px-3 py-2 rounded-xl text-emerald-300 hover:border-emerald-400">Wrap</button>
+                    <button id="findBtn" class="btn pill px-3 py-2 rounded-xl text-cyan-300 hover:border-cyan-400">Find</button>
+                    <button id="replaceBtn" class="btn pill px-3 py-2 rounded-xl text-yellow-300 hover:border-yellow-400">Replace</button>
+                    <button id="formatBtn" class="btn pill px-3 py-2 rounded-xl text-purple-300 hover:border-purple-400">Auto</button>
+                </div>
+                <div class="text-xs text-gray-400 leading-6">
+                    <div><span class="text-emerald-400">•</span> اختر اللغة من الأعلى ليتغير التلوين فورًا.</div>
+                    <div><span class="text-emerald-400">•</span> الحفظ يرسل الملف مباشرة إلى نفس الاستضافة.</div>
+                    <div><span class="text-emerald-400">•</span> ملفات Python يتم فحصها لمزامنة requirements تلقائيًا.</div>
+                </div>
+            </div>
+
+            <div class="panel rounded-2xl p-0 lg:col-span-2 overflow-hidden">
+                <div class="code-toolbar px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex flex-wrap items-center gap-2 text-xs text-gray-400">
+                        <span class="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300" id="editorState">Ready</span>
+                        <span class="px-3 py-1 rounded-full bg-[#0f172a] border border-gray-700" id="currentMode">{{ mode }}</span>
+                        <span class="px-3 py-1 rounded-full bg-[#0f172a] border border-gray-700 break-all" id="pathPreview">{{ folder or '' }}{% if filename %}{% if folder %}/{% endif %}{{ filename }}{% endif %}</span>
+                    </div>
+                    <div class="flex gap-2 flex-wrap">
+                        <button id="searchNowBtn" class="btn px-3 py-2 rounded-lg bg-[#111827] border border-gray-700 text-xs hover:border-cyan-400"><i class="fas fa-search mr-1"></i> Search</button>
+                        <button id="fullscreenBtn" class="btn px-3 py-2 rounded-lg bg-[#111827] border border-gray-700 text-xs hover:border-emerald-400"><i class="fas fa-expand mr-1"></i> Fullscreen</button>
+                    </div>
+                </div>
+                <textarea id="editorArea">{{ initial_content }}</textarea>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/display/fullscreen.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/php/php.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/yaml/yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
+    <script>
+        const serverId = {{ server_id|tojson }};
+        const panelUrl = {{ panel_url|tojson }};
+        const initialFilename = {{ filename|tojson }};
+        const initialFolder = {{ folder|tojson }};
+        const initialMode = {{ mode|tojson }};
+        const initialContent = {{ initial_content|tojson }};
+        const modeSelect = document.getElementById('languageMode');
+        const fileName = document.getElementById('fileName');
+        const folderPath = document.getElementById('folderPath');
+        const currentMode = document.getElementById('currentMode');
+        const pathPreview = document.getElementById('pathPreview');
+        const editorState = document.getElementById('editorState');
+        let editor = null;
+
+        const MODE_BY_EXT = {
+            '.py': 'python', '.js': 'javascript', '.mjs': 'javascript', '.cjs': 'javascript',
+            '.html': 'htmlmixed', '.htm': 'htmlmixed', '.css': 'css', '.php': 'php',
+            '.json': 'javascript', '.yml': 'yaml', '.yaml': 'yaml', '.xml': 'xml',
+            '.sql': 'sql', '.md': 'markdown', '.markdown': 'markdown', '.txt': 'text/plain'
+        };
+        const EXT_BY_MODE = {
+            'python': '.py', 'javascript': '.js', 'htmlmixed': '.html', 'css': '.css',
+            'php': '.php', 'application/json': '.json', 'yaml': '.yml', 'xml': '.xml',
+            'sql': '.sql', 'markdown': '.md', 'text/plain': '.txt'
+        };
+        function normalizeMode(mode) { return mode || 'text/plain'; }
+        function detectModeFromFilename(name) {
+            const lower = (name || '').toLowerCase();
+            for (const [ext, mode] of Object.entries(MODE_BY_EXT)) {
+                if (lower.endsWith(ext)) return mode;
+            }
+            return 'text/plain';
+        }
+        function updatePathPreview() {
+            const base = (folderPath.value || '').trim().replace(/^\/|\/$/g, '');
+            const name = (fileName.value || '').trim();
+            pathPreview.textContent = base && name ? `${base}/${name}` : (name || base || '/');
+        }
+        function ensureExtensionForMode() {
+            const mode = modeSelect.value;
+            const ext = EXT_BY_MODE[mode] || '';
+            let name = (fileName.value || '').trim();
+            if (!name) return;
+            if (ext && !/\.[a-z0-9]+$/i.test(name)) {
+                fileName.value = name + ext;
+            }
+        }
+        function setMode(mode) {
+            modeSelect.value = mode;
+            currentMode.textContent = mode;
+            if (editor) editor.setOption('mode', mode);
+        }
+        function ensureEditor() {
+            if (editor || !window.CodeMirror) return editor;
+            editor = CodeMirror.fromTextArea(document.getElementById('editorArea'), {
+                lineNumbers: true,
+                lineWrapping: true,
+                theme: 'material-darker',
+                matchBrackets: true,
+                autoCloseBrackets: true,
+                styleActiveLine: true,
+                mode: normalizeMode(initialMode)
+            });
+            editor.setValue(initialContent || '');
+            return editor;
+        }
+        function showState(text, good=true) {
+            editorState.textContent = text;
+            editorState.className = 'px-3 py-1 rounded-full border text-emerald-300 ' + (good ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-red-500/10 border-red-500/20 text-red-300');
+        }
+        function getFullFilename() {
+            const base = (folderPath.value || '').trim().replace(/^\/|\/$/g, '');
+            const name = (fileName.value || '').trim();
+            return base ? (name ? `${base}/${name}` : base) : name;
+        }
+        function saveFile() {
+            const full = getFullFilename();
+            if (!full) return showState('File name required', false);
+            const content = editor ? editor.getValue() : document.getElementById('editorArea').value;
+            showState('Saving...');
+            fetch(`/api/file/${serverId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename: full, content })
+            }).then(async r => {
+                const data = await r.json().catch(() => ({}));
+                if (!r.ok || data.error) throw new Error(data.error || 'save_failed');
+                showState('Saved ✓');
+                if ((full || '').toLowerCase().endsWith('.py')) {
+                    fetch(`/api/sync_requirements/${serverId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ main_file: full, requirements_file: 'requirements.txt' }) }).catch(() => {});
+                }
+            }).catch(() => showState('Save failed', false));
+        }
+        function downloadFile() {
+            const full = getFullFilename();
+            if (!full) return showState('File name required', false);
+            const a = document.createElement('a');
+            a.href = `/api/download/${serverId}?filename=${encodeURIComponent(full)}`;
+            a.download = '';
+            document.body.appendChild(a); a.click(); a.remove();
+        }
+        function findText() {
+            const q = prompt('Find:');
+            if (!q || !editor) return;
+            const c = editor.getSearchCursor(q);
+            if (c.findNext()) {
+                editor.setSelection(c.from(), c.to());
+                editor.scrollIntoView({ from: c.from(), to: c.to() });
+            } else showState('Not found', false);
+        }
+        function replaceText() {
+            if (!editor) return;
+            const find = prompt('Find:');
+            if (!find) return;
+            const replace = prompt('Replace with:');
+            if (replace === null) return;
+            const c = editor.getSearchCursor(find);
+            let count = 0;
+            editor.operation(() => {
+                while (c.findNext()) { c.replace(replace); count++; }
+            });
+            showState(`Replaced ${count} occurrence(s)`);
+        }
+        document.getElementById('saveBtn').addEventListener('click', saveFile);
+        document.getElementById('downloadBtn').addEventListener('click', downloadFile);
+        document.getElementById('findBtn').addEventListener('click', findText);
+        document.getElementById('replaceBtn').addEventListener('click', replaceText);
+        document.getElementById('wrapBtn').addEventListener('click', () => { if (editor) editor.setOption('lineWrapping', !editor.getOption('lineWrapping')); });
+        document.getElementById('fullscreenBtn').addEventListener('click', () => { if (editor) editor.setOption('fullScreen', !editor.getOption('fullScreen')); });
+        document.getElementById('searchNowBtn').addEventListener('click', findText);
+        fileName.addEventListener('input', updatePathPreview);
+        folderPath.addEventListener('input', updatePathPreview);
+        modeSelect.addEventListener('change', () => {
+            const mode = modeSelect.value;
+            currentMode.textContent = mode;
+            if (editor) editor.setOption('mode', mode);
+            ensureExtensionForMode();
+            updatePathPreview();
+        });
+        document.getElementById('formatBtn').addEventListener('click', () => {
+            if (!editor) return;
+            editor.setOption('mode', detectModeFromFilename(getFullFilename()));
+            currentMode.textContent = editor.getOption('mode');
+            showState('Mode auto-detected');
+        });
+        if (initialFilename && !fileName.value) fileName.value = initialFilename;
+        if (initialFolder && !folderPath.value) folderPath.value = initialFolder;
+        if (initialMode) modeSelect.value = initialMode;
+        currentMode.textContent = modeSelect.value;
+        updatePathPreview();
+        ensureEditor();
+        if (initialFilename) {
+            const detected = detectModeFromFilename(initialFilename);
+            modeSelect.value = detected;
+            currentMode.textContent = detected;
+            if (editor) editor.setOption('mode', detected);
+        }
+        showState('Ready');
+    </script>
+</body>
+  </html>
